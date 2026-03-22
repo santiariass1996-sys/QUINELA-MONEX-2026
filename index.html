@@ -411,6 +411,33 @@ body{background:var(--dark);color:var(--text);font-family:'Barlow',sans-serif;mi
   </div>
 </div>
 
+<!-- Safety net: show error if module fails to load or boot() never fires -->
+<script>
+(function(){
+  var TIMEOUT=12000;
+  function showLoadError(){
+    var ls=document.getElementById('LS');
+    if(!ls||ls.style.display==='none')return;
+    ls.innerHTML='<div style="text-align:center;padding:2rem;max-width:420px;margin:0 auto">'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:2.2rem;color:#F5C518;letter-spacing:4px;margin-bottom:.6rem">CONEXIÓN FALLIDA</div>'
+      +'<p style="color:#6B7A99;font-size:.88rem;line-height:1.8;margin-bottom:1.6rem">'
+      +'No se pudo cargar la aplicación.<br>'
+      +'Verifica tu conexión a internet e inténtalo de nuevo.</p>'
+      +'<button onclick="location.reload()" style="background:linear-gradient(135deg,#F5C518,#E8A000);color:#07090F;border:none;padding:13px 30px;border-radius:6px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:2px;text-transform:uppercase;box-shadow:0 4px 20px rgba(245,197,24,.4)">↺ REINTENTAR</button>'
+      +'</div>';
+  }
+  // Timeout fallback — if #LS still visible after TIMEOUT ms, module never ran
+  setTimeout(showLoadError, TIMEOUT);
+  // Catch unhandled promise rejections (e.g. dynamic import failures)
+  window.addEventListener('unhandledrejection',function(e){
+    if(e.reason&&String(e.reason).toLowerCase().includes('firebase'))showLoadError();
+  });
+  // Catch script load errors (e.g. gstatic.com blocked)
+  window.addEventListener('error',function(e){
+    if(e.filename&&(e.filename.includes('gstatic')||e.filename.includes('firebase')))showLoadError();
+  },true);
+})();
+</script>
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getDatabase,ref,set,get,onValue,update,remove}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -1241,9 +1268,9 @@ g('rgP2').addEventListener('keydown',e=>{if(e.key==='Enter')register();});
 // BOOT
 // ═══════════════════════════════════════════
 boot().catch(e=>{
-  console.error(e);
-  g('LS').style.display='none';
-  toast('Error conectando: '+e.message,'err');
+  console.error('Boot error:',e);
+  try{g('LS').style.display='none';}catch(_){}
+  try{toast('Error conectando: '+e.message,'err');}catch(_){}
 });
 </script>
 </body>
